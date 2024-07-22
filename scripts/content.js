@@ -16,13 +16,13 @@ async function updateTfIdf(text, url)
     }
 
     let counts = {};
-    const regex = /\w+/gi
-    let words = text.match(regex)
+    const regex = /\w+/g
+    let words = text.toLowerCase().match(regex) // all text is lower case now, no need to convert every time
 
     let bigrams = [];
     
-    for (let i = 0; i < words.length - 1; i++) {
-        let bigram = words[i].toLowerCase() + " " + words[i + 1].toLowerCase();
+    for (let i = 0; l = words.length - 1; i < l; i++) { // optimization
+        let bigram = words[i] + " " + words[i + 1];
         bigrams.push(bigram);
     }
     words = words.concat(bigrams);
@@ -36,24 +36,13 @@ async function updateTfIdf(text, url)
         expandedWords = expandedWords.concat(synonyms);
     }
 */
-    words.forEach(function(tmp) 
-    {
-        let str = tmp.toLowerCase();
+    for (let str in words) { // for loops are more efficient 
         if (counts[str]) {
             counts[str]++;
         } else {
             counts[str] = 1;
         }
-    });
-
-    words.forEach(function(tmp) {
-        let str = tmp.toLowerCase();
-        if (counts[str]) {
-            counts[str]++;
-        } else {
-            counts[str] = 1;
-        }
-    });
+    };
 
     // Delete saved document
     let removeSavedUrl = false;
@@ -106,7 +95,6 @@ async function updateTfIdf(text, url)
         storage.documents[url]["st"] = null;
     }
 
-    //let wordCount = words.length;
     let wordCount = words.length;
     storage.documents[url]["tf"] = {};
     for (let str in counts){
@@ -165,17 +153,20 @@ async function updateTfIdf(text, url)
     return storage;
 }
 
-// This is very pointless as the query is already being accessed in 
-// getReccomendation but this function is used in showReccomendation()
-// Remove at first chance
-async function setSearchQuery() { 
-    const urlObj = new URL(window.location.href);
-    const params = new URLSearchParams(urlObj.search);
+/*
+This is very pointless as the query is already being accessed in 
+getReccomendation but this function is used in showReccomendation()
+Remove at first chance
+
+ async function setSearchQuery() { 
+   const urlObj = new URL(window.location.href);
+   const params = new URLSearchParams(urlObj.search);
     const query = params.get('q');
     await chrome.storage.local.set({ query: query});
 }
+not used in showrec */
 
-async function getReccomendation() {
+async function getRecommendation() {
     let urlObj = new URL(window.location.href);
     let params = new URLSearchParams(urlObj.search);
     let query = params.get('q');
@@ -217,7 +208,7 @@ async function getReccomendation() {
     
 
     let sortedKeysAndHighlightedTexts = {};
-    for (let i = 0; i < sortedKeys.length; i++)
+    for (i = 0; l = sortedKeys.length; i < l; i++) // optimization
     {
         let url = sortedKeys[i];
         sortedKeysAndHighlightedTexts[url] = storage.documents[url]["st"];
@@ -225,7 +216,7 @@ async function getReccomendation() {
     return sortedKeysAndHighlightedTexts;
 }
 
-async function placeReccomendationBoxInDiv(reccomendationBox) {
+async function placeRecommendationBoxInDiv(recommendationBox) {
     // If a google info box appears on the right, a new column with id rhs is created, it takes a short time to load
     searchResults = document.getElementById("rcnt")
 
@@ -238,18 +229,18 @@ async function placeReccomendationBoxInDiv(reccomendationBox) {
         await new Promise(resolve => setTimeout(resolve, 500));  // Wait for 500ms before trying again
     }
     if (rhsDiv) {
-        rhsDiv.appendChild(reccomendationBox);
+        rhsDiv.appendChild(recommendationBox);
     } else {
         let newRhsDiv = document.createElement('div');
         newRhsDiv.id = 'rhs';
         searchResults.appendChild(newRhsDiv);
-        newRhsDiv.appendChild(reccomendationBox);
+        newRhsDiv.appendChild(recommendationBox);
     }
 }
 
 
 
-function createReccomendationBox(text) {
+function createRecommendationBox(text) {
 
     let existing_box = document.getElementById('archive-recommendation');
     if (existing_box != null) { 
@@ -278,11 +269,11 @@ function createReccomendationBox(text) {
     return infoBox;
 }
 
-async function showReccomendation() {
-    let rankedReccomendations = await getReccomendation();
+async function showRecommendation() {
+    let rankedRecommendations = await getRecommendation();
     var text = "";
 
-    const entries = Object.entries (rankedReccomendations);
+    const entries = Object.entries (rankedRecommendations);
     const firstFive = entries.slice (0,5);
 
     firstFive.forEach (([recommendedUrl, highlightedText]) => {
@@ -302,19 +293,19 @@ async function showReccomendation() {
     let recommendation_box = null;
     if (text !== "")
     {
-        recommendation_box = createReccomendationBox(text);
+        recommendation_box = createRecommendationBox(text);
     }
 
     if (recommendation_box == null) {
         return;
     }
 
-    await placeReccomendationBoxInDiv(recommendation_box);
+    await placeRecommendationBoxInDiv(recommendation_box);
 }
 // urlpattern = /^https:\/\/www\.google\.com\/search.*/
 if (/^https:\/\/www\.google\.com\/search.*/.test(window.location.href))
 {
-    showReccomendation();
+    showRecommendation();
 }
 else
 {
